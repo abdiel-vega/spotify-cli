@@ -11,10 +11,24 @@ from ui.ascii_art import get_ascii_art
 
 console = Console(force_terminal=True, color_system="truecolor")
 
+def build_commands_panel() -> Text:
+    """
+    builds the commands reference strip at the bottom of the display.
+    each command key is highlighted in green so it's immediately obvious
+    what to type. this panel is static, it doesn't change each refresh.
+    """
+    return Text.assemble(
+        ("  p", "bold green"),  (" play/pause    ", "dim"),
+        ("n", "bold green"),    (" next track    ", "dim"),
+        ("b", "bold green"),    (" previous track    ", "dim"),
+        ("v ", "bold green"),   ("<0–100>", "bold green"), ("  set volume    ", "dim"),
+        ("s ", "bold green"),   ("<query>", "bold green"), ("  search tracks    ", "dim"),
+        ("q", "bold red"),      ("  quit", "dim"),
+        justify="center",
+    )
+
 def format_duration(ms: int) -> str:
-    """
-    Converts milliseconds to MM:SS format
-    """
+    """Converts milliseconds to MM:SS format"""
     seconds = ms // 1000
     minutes = seconds // 60
     remaining = seconds % 60
@@ -75,14 +89,23 @@ def build_display(data: dict) -> Layout:
         art_content = Text("No album art available", style="dim")
     
     # --- build the Layout and assign each panel to a region ---
-    # Layout() creates a root container, which we split in two columns using .split_row(), which divides it horizontally
-    # the ratio parameter controls how much space each column gets
+    # the root is split into two rows: main content (ratio=10) and
+    # a thin commands strip at the bottom (ratio=1).
+    # the main content row is then split into the art/spacer/info columns
     layout = Layout()
-    layout.split_row(
+    layout.split_column(
+        Layout(name="main", ratio=10),
+        Layout(name="commands", ratio=1),
+    )
+    
+    layout["main"].split_row(
         Layout(Align.right(art_content, vertical="middle"), name="art", ratio=10),
         Layout(Text(" "), name="spacer", ratio=1),
         Layout(Align.left(info_content, vertical="middle"), name="info", ratio=10),
     )
+
+    # assign the commands panel to the bottom strip
+    layout["commands"].update(Align.center(build_commands_panel(), vertical="middle"))
 
     return layout
     
