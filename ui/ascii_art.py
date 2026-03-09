@@ -1,8 +1,10 @@
 import requests
 from PIL import Image
 from io import BytesIO
+from functools import lru_cache
 
 
+@lru_cache(maxsize=4)
 def get_ascii_art(image_url: str, columns: int = 64) -> str:
     """
     downloads a Spotify album art image and converts it to a half-block

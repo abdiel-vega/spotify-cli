@@ -11,19 +11,26 @@ from ui.ascii_art import get_ascii_art
 
 console = Console(force_terminal=True, color_system="truecolor")
 
-def build_commands_panel() -> Text:
+def build_commands_panel(search_active: bool = False, result_count: int = 0) -> Text:
     """
-    builds the commands reference strip at the bottom of the display.
-    each command key is highlighted in green so it's immediately obvious
-    what to type. this panel is static, it doesn't change each refresh.
+    commands strip changes when search results are showing
+    numbers select a track, Esc or c clears results
     """
+    if search_active:
+        max_num = str(result_count) if result_count > 0 else "?"
+        return Text.assemble(
+            (f"<1-{max_num}>", "bold green"),  (" play result    ", "dim"),
+            ("c", "bold yellow"),     (" clear results    ", "dim"),
+            ("q", "bold red"),        ("  quit", "dim"),
+            justify="center",
+        )
     return Text.assemble(
-        ("  p", "bold green"),  (" play/pause    ", "dim"),
-        ("n", "bold green"),    (" next track    ", "dim"),
-        ("b", "bold green"),    (" previous track    ", "dim"),
-        ("v ", "bold green"),   ("<0–100>", "bold green"), ("  set volume    ", "dim"),
-        ("s ", "bold green"),   ("<query>", "bold green"), ("  search tracks    ", "dim"),
-        ("q", "bold red"),      ("  quit", "dim"),
+        ("p", "bold green"),  (" play/pause    ", "dim"),
+        ("n", "bold green"),  (" next    ", "dim"),
+        ("b", "bold green"),  (" previous    ", "dim"),
+        ("v ", "bold green"), ("<0-100>", "bold green"), ("  volume    ", "dim"),
+        ("s ", "bold green"), ("<query>", "bold green"), ("  search    ", "dim"),
+        ("q", "bold red"),    ("  quit", "dim"),
         justify="center",
     )
 
@@ -35,7 +42,7 @@ def format_duration(ms: int) -> str:
     return f"{minutes}:{remaining:02d}"
 
 
-def build_display(data: dict) -> Layout:
+def build_display(data: dict, input_buffer: str = "", search_results=None, search_query: str = "") -> Layout:
     """
     Takes the raw Spotify playback dict and builds a display panel
     containing track metadata. This function is called every second
@@ -64,48 +71,101 @@ def build_display(data: dict) -> Layout:
     play_icon  = "▶  " if is_playing else "⏸  "
     play_color = "green" if is_playing else "yellow"
 
-    # compose the display
-    # Text.assemble builds a styled string piece by piece
-    info_content = Text.assemble(
-        ("\n\n\n", ""),
-        (f"{song_name}\n", "bold white"),
-        (f"{artist_str}\n", "green"),
-        (f"{album_name} ({release_yr})\n\n", "dim"),
-        ("█" * filled, "green"),
-        ("░" * (bar_width - filled), "dim"),
-        ("\n\n", ""),
-        (play_icon, play_color),
-        (f"{format_duration(progress_ms)} / {format_duration(duration_ms)}", "green"),
-        justify="left",
-    )
+    # --- right panel: search results or track info ---
+    if search_results is not None:
+        # search results view, replaces the track info panel
+        if len(search_results) == 0:
+            right_content = Text.assemble(
+                ("\n\n\n", ""),
+                (f'No results for "{search_query}"', "dim"),
+                justify="left",
+            )
+        else:
+            # build a numbered list of results grouped with type badges
+            # 32-line budget: 3 lines header + 2 lines per result → max 14 results
+            MAX_VISIBLE = 14
+            TYPE_BADGES = {
+                "track":    ("Track",    "green"),
+                "album":    ("Album",    "cyan"),
+                "playlist": ("Playlist", "magenta"),
+            }
+            parts = [
+                (f' Results for "{search_query}"\n\n', "bold white"),
+            ]
+            visible = search_results[:MAX_VISIBLE]
+            for i, item in enumerate(visible):
+                badge_text, badge_style = TYPE_BADGES.get(item["type"], ("?", "dim"))
+                name = item['name'] if len(item['name']) <= 46 else item['name'][:45] + "…"
+                subtitle = item['subtitle'] if len(item['subtitle']) <= 46 else item['subtitle'][:45] + "…"
+                parts += [
+                    (f" {i+1:>2} ", "bold green"),
+                    (f"[{badge_text}] ", badge_style),
+                    (f"{name}\n", "white"),
+                    (f"     {subtitle}\n", "dim"),
+                ]
+            # show truncation notice if results were clipped
+            hidden = len(search_results) - len(visible)
+            if hidden > 0:
+                parts.append((f"\n     … and {hidden} more result{'s' if hidden != 1 else ''}\n", "dim"))
+            right_content = Text.assemble(*parts, justify="left")
+            right_content.no_wrap = True
+
+    else:
+        # normal now-playing info view
+        right_content = Text.assemble(
+            ("\n\n\n", ""),
+            (f"{song_name}\n", "bold white"),
+            (f"{artist_str}\n", "green"),
+            (f"{album_name} ({release_yr})\n\n", "dim"),
+            ("█" * filled, "green"),
+            ("░" * (bar_width - filled), "dim"),
+            ("\n\n", ""),
+            (play_icon, play_color),
+            (f"{format_duration(progress_ms)} / {format_duration(duration_ms)}", "green"),
+            justify="left",
+        )
 
     # --- build ascii art panel (bottom) ---
     if image_url:
         # get_ascii_art returns raw ANSI string
         # Text.from_ansi() tells Rich to preserve existing color codes rather than treating them as Rich markup or plain text
-        art_string = get_ascii_art(image_url, columns=64)
-        art_content = Text.from_ansi(art_string)
+        art_content = Text.from_ansi(get_ascii_art(image_url, columns=64))
     else:
         art_content = Text("No album art available", style="dim")
+
+    # --- input line ---
+    input_line = Text.assemble(
+        ("> ", "bold green"),
+        (input_buffer, "white"),
+        ("_", "white"),
+    )
     
     # --- build the Layout and assign each panel to a region ---
     # the root is split into two rows: main content (ratio=10) and
-    # a thin commands strip at the bottom (ratio=1).
+    # a thin commands strip at the bottom (ratio=1)
     # the main content row is then split into the art/spacer/info columns
     layout = Layout()
     layout.split_column(
         Layout(name="main", ratio=10),
         Layout(name="commands", ratio=1),
+        Layout(name="input", ratio=1),
     )
-    
+
     layout["main"].split_row(
         Layout(Align.right(art_content, vertical="middle"), name="art", ratio=10),
         Layout(Text(" "), name="spacer", ratio=1),
-        Layout(Align.left(info_content, vertical="middle"), name="info", ratio=10),
+        Layout(Align.left(right_content, vertical="middle"), name="info", ratio=10),
     )
 
     # assign the commands panel to the bottom strip
-    layout["commands"].update(Align.center(build_commands_panel(), vertical="middle"))
+    result_count = len(search_results) if search_results else 0
+    layout["commands"].update(
+        Align.center(build_commands_panel(
+            search_active=search_results is not None,
+            result_count=result_count,
+        ), vertical="middle")
+    )
+    layout["input"].update(Align.center(input_line, vertical="middle"))
 
     return layout
     
@@ -115,7 +175,7 @@ def show_now_playing():
     Main display loop. Pulls Spotify every second and refreshes the layout.
     """
     # refresh_per_second=1 means the callback below runs every second
-    with Live(console=console, refresh_per_second=1) as live:
+    with Live(console=console, refresh_per_second=4, screen=True) as live:
         try:
             while True:
                 data = get_current_track()
@@ -128,10 +188,10 @@ def show_now_playing():
                     # build and display the panel
                     live.update(build_display(data))
 
-                time.sleep(1) # wait one second before pulling Spotify again
+                time.sleep(0.25) # wait one second before pulling Spotify again
 
         except KeyboardInterrupt: # when Ctrl+C is pressed, we catch it here instead of letting
-            console.print("\n[dim]Stopped.[/dim]")
+            pass
 
 
 if __name__ == "__main__":
