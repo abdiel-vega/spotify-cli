@@ -22,11 +22,11 @@ def previous_track():
 def set_volume(level: int):
     sp.volume(level) # volume must be between 0 - 100
 
-def toggle_shuffle():
+def toggle_shuffle(state: bool):
     sp.shuffle(state) # true = shuffle on | false = shuffle off
 
-def toggle_repeat():
-    sp.repeat(state) # options: 'track' | 'context' (album/playlist) | 'off'
+def toggle_repeat(mode: str):
+    sp.repeat(mode) # options: 'track' | 'context' (album/playlist) | 'off'
 
 def play_uri(track_uri: str):
     sp.start_playback(uris=[track_uri]) # track_uri looks like "spotify:track:4iV5W9uYEdYUVa79Axb7Rh"

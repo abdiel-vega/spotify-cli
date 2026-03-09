@@ -4,12 +4,37 @@ from rich.panel import Panel
 from rich.live import Live
 from rich.text import Text
 from rich.align import Align 
+import re
 import time
 
 from api.spotify_client import get_current_track
 from ui.ascii_art import get_ascii_art
 
 console = Console(force_terminal=True, color_system="truecolor")
+
+# regex to match emoji and other problematic wide Unicode characters
+# these cause Rich's layout to miscalculate column widths, leading to flicker
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001F600-\U0001F64F"  # emoticons
+    "\U0001F300-\U0001F5FF"  # symbols & pictographs
+    "\U0001F680-\U0001F6FF"  # transport & map symbols
+    "\U0001F1E0-\U0001F1FF"  # flags
+    "\U00002702-\U000027B0"  # dingbats
+    "\U0001F900-\U0001F9FF"  # supplemental symbols
+    "\U0001FA00-\U0001FA6F"  # chess symbols
+    "\U0001FA70-\U0001FAFF"  # symbols extended-A
+    "\U00002600-\U000026FF"  # misc symbols
+    "\U0000FE00-\U0000FE0F"  # variation selectors
+    "\U0000200D"             # zero-width joiner
+    "\U000020E3"             # combining enclosing keycap
+    "\U0000E000-\U0000F8FF"  # private use area
+    "]+"
+)
+
+def strip_emojis(text: str) -> str:
+    """Remove emoji characters that cause terminal width miscalculations."""
+    return _EMOJI_RE.sub("", text).strip()
 
 def build_commands_panel(search_active: bool = False, result_count: int = 0) -> Text:
     """
@@ -28,9 +53,11 @@ def build_commands_panel(search_active: bool = False, result_count: int = 0) -> 
         ("p", "bold green"),  (" play/pause    ", "dim"),
         ("n", "bold green"),  (" next    ", "dim"),
         ("b", "bold green"),  (" previous    ", "dim"),
-        ("v ", "bold green"), ("<0-100>", "bold green"), ("  volume    ", "dim"),
-        ("s ", "bold green"), ("<query>", "bold green"), ("  search    ", "dim"),
-        ("q", "bold red"),    ("  quit", "dim"),
+        ("f", "bold green"),  (" shuffle    ", "dim"),
+        ("r", "bold green"),  (" repeat    ", "dim"),
+        ("v", "bold green"), (" <0-100>", "bold green"), (" volume    ", "dim"),
+        ("s", "bold green"), (" <query>", "bold green"), (" search    ", "dim"),
+        ("q", "bold red"),    (" quit", "dim"),
         justify="center",
     )
 
@@ -95,8 +122,10 @@ def build_display(data: dict, input_buffer: str = "", search_results=None, searc
             visible = search_results[:MAX_VISIBLE]
             for i, item in enumerate(visible):
                 badge_text, badge_style = TYPE_BADGES.get(item["type"], ("?", "dim"))
-                name = item['name'] if len(item['name']) <= 46 else item['name'][:45] + "…"
-                subtitle = item['subtitle'] if len(item['subtitle']) <= 46 else item['subtitle'][:45] + "…"
+                name = strip_emojis(item['name'])
+                name = name if len(name) <= 46 else name[:45] + "…"
+                subtitle = strip_emojis(item['subtitle'])
+                subtitle = subtitle if len(subtitle) <= 46 else subtitle[:45] + "…"
                 parts += [
                     (f" {i+1:>2} ", "bold green"),
                     (f"[{badge_text}] ", badge_style),
@@ -108,7 +137,6 @@ def build_display(data: dict, input_buffer: str = "", search_results=None, searc
             if hidden > 0:
                 parts.append((f"\n     … and {hidden} more result{'s' if hidden != 1 else ''}\n", "dim"))
             right_content = Text.assemble(*parts, justify="left")
-            right_content.no_wrap = True
 
     else:
         # normal now-playing info view
@@ -116,12 +144,12 @@ def build_display(data: dict, input_buffer: str = "", search_results=None, searc
             ("\n\n\n", ""),
             (f"{song_name}\n", "bold white"),
             (f"{artist_str}\n", "green"),
-            (f"{album_name} ({release_yr})\n\n", "dim"),
+            (f"{album_name}\n\n", "dim"),
             ("█" * filled, "green"),
             ("░" * (bar_width - filled), "dim"),
             ("\n\n", ""),
             (play_icon, play_color),
-            (f"{format_duration(progress_ms)} / {format_duration(duration_ms)}", "green"),
+            (f"{format_duration(progress_ms)} / {format_duration(duration_ms)}", "white"),
             justify="left",
         )
 
@@ -174,8 +202,8 @@ def show_now_playing():
     """
     Main display loop. Pulls Spotify every second and refreshes the layout.
     """
-    # refresh_per_second=1 means the callback below runs every second
-    with Live(console=console, refresh_per_second=4, screen=True) as live:
+    # callback below runs every second
+    with Live(console=console, refresh_per_second=1, screen=True) as live:
         try:
             while True:
                 data = get_current_track()
@@ -188,7 +216,7 @@ def show_now_playing():
                     # build and display the panel
                     live.update(build_display(data))
 
-                time.sleep(0.25) # wait one second before pulling Spotify again
+                time.sleep(0.25) # wait before pulling Spotify again
 
         except KeyboardInterrupt: # when Ctrl+C is pressed, we catch it here instead of letting
             pass

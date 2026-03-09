@@ -17,7 +17,7 @@ from ui.display import build_display, console
 
 # single-character commands that execute the moment the key is pressed.
 # no enter required = instant feedback
-INSTANT_COMMANDS = {'p', 'n', 'b', 'q'}
+INSTANT_COMMANDS = {'p', 'n', 'b', 'f', 'r', 'q'}
 
 # shared state dict, both the input thread and display loop read-write this
 # using a dict (mutable) means the thread can update values in-place and
@@ -52,6 +52,19 @@ def process_command(cmd: str) -> bool:
     elif action == "b":
         previous_track()
         state["search_results"] = None # clear results on track change
+
+    elif action == "f":
+        data = get_current_track()
+        current_shuffle = data.get("shuffle_state", False) if data else False
+        toggle_shuffle(not current_shuffle)
+
+    elif action == "r":
+        # cycle: off → context → track → off
+        REPEAT_CYCLE = {"off": "context", "context": "track", "track": "off"}
+        data = get_current_track()
+        current_repeat = data.get("repeat_state", "off") if data else "off"
+        next_mode = REPEAT_CYCLE.get(current_repeat, "off")
+        toggle_repeat(next_mode)
 
     elif action == "v":
         if len(parts) >= 2:
@@ -136,7 +149,7 @@ def process_command(cmd: str) -> bool:
 
 @click.group()
 def cli():
-    """🎵 Spotify Terminal CLI — Control Spotify from your terminal."""
+    """Spotify Terminal CLI"""
     pass
 
 
@@ -161,6 +174,13 @@ def run_cmd():
                 # getwch() reads one character immediately without echoing it
                 # to the terminal — we control display ourselves via the input line
                 ch = msvcrt.getwch()
+
+                # special / extended keys (arrows, function keys, mouse
+                # scroll) send a two-byte sequence: a prefix (\x00 or
+                # \xe0) followed by a scancode.  Consume both and ignore.
+                if ch in ('\x00', '\xe0'):
+                    msvcrt.getwch()  # eat the scancode
+                    continue
 
                 if ch in ('\r', '\n'):
                     # [Enter] submit whatever is in the buffer
