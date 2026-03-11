@@ -33,7 +33,7 @@ _EMOJI_RE = re.compile(
 )
 
 def strip_emojis(text: str) -> str:
-    """Remove emoji characters that cause terminal width miscalculations."""
+    """remove emoji characters that cause terminal width miscalculations."""
     return _EMOJI_RE.sub("", text).strip()
 
 def build_commands_panel(search_active: bool = False, result_count: int = 0) -> Text:
@@ -62,7 +62,7 @@ def build_commands_panel(search_active: bool = False, result_count: int = 0) -> 
     )
 
 def format_duration(ms: int) -> str:
-    """Converts milliseconds to MM:SS format"""
+    """converts milliseconds to MM:SS format"""
     seconds = ms // 1000
     minutes = seconds // 60
     remaining = seconds % 60
@@ -71,9 +71,9 @@ def format_duration(ms: int) -> str:
 
 def build_display(data: dict, input_buffer: str = "", search_results=None, search_query: str = "") -> Layout:
     """
-    Takes the raw Spotify playback dict and builds a display panel
-    containing track metadata. This function is called every second
-    by the Live display loop below.
+    takes the raw Spotify playback dict and builds a display panel
+    containing track metadata. this function is called every second
+    by the live display loop below.
     """
     # --- pull data from the playback dict ---
     song_name   = data.get("item", {}).get("name", "unknown")

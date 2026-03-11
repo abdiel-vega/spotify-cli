@@ -163,9 +163,9 @@ def run_cmd():
 
     def input_listener():
         """
-        Background thread — reads keypresses one character at a time using
+        background thread, reads keypresses one character at a time using
         msvcrt.getwch() which returns immediately on any keypress with no
-        need for Enter. Builds a buffer for multi-character commands (v, s)
+        need for Enter. builds a buffer for multi-character commands (v, s)
         and sends completed commands to cmd_queue.
         """
         buf = ""
@@ -222,7 +222,7 @@ def run_cmd():
             cached_data = None  # cache last good Spotify response
 
             while True:
-                # Fetch fresh data — fall back to cache if request fails
+                # fetch fresh data, fall back to cache if request fails
                 try:
                     data = get_current_track()
                     if data:
@@ -237,7 +237,7 @@ def run_cmd():
                         border_style="yellow"
                     ))
                 else:
-                    # Pass the current input buffer so the display shows
+                    # pass the current input buffer so the display shows
                     # what the user is typing without it being lost on refresh
                     live.update(build_display(
                         data,
@@ -246,7 +246,7 @@ def run_cmd():
                         search_query=state["search_query"],
                     ))
 
-                # Process any completed commands
+                # process any completed commands
                 while not cmd_queue.empty():
                     cmd = cmd_queue.get()
                     should_quit = process_command(cmd)
@@ -260,7 +260,7 @@ def run_cmd():
             stop_event.set()
 
 
-# --- Standalone commands (still usable for scripting/hotkeys) ---
+# --- standalone commands ---
 
 @cli.command("play")
 def play_cmd():

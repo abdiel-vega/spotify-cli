@@ -32,7 +32,7 @@ def play_uri(track_uri: str):
     sp.start_playback(uris=[track_uri]) # track_uri looks like "spotify:track:4iV5W9uYEdYUVa79Axb7Rh"
 
 def play_context_uri(context_uri: str):
-    """Play an album or playlist by its context URI."""
+    """play an album or playlist by its context URI."""
     sp.start_playback(context_uri=context_uri) # e.g. "spotify:album:..." or "spotify:playlist:..."
 
 
@@ -40,8 +40,8 @@ def play_context_uri(context_uri: str):
 
 def get_current_track():
     """
-    Returns the full playback state from Spotify.
-    The rest of the app will pull what's needed from this source.
+    returns the full playback state from Spotify.
+    the rest of the app will pull what's needed from this source.
     """
     return sp.current_playback()
 
@@ -49,7 +49,7 @@ def get_current_track():
 # --- search ---
 def search(query: str, search_type: str = "track", limit: int = 10):
     """
-    Searches the Spotify catalog.
+    searches the Spotify catalog.
     search_type can be a single type ('track') or comma-separated ('track,album,playlist').
     limit controls how many results come back per type (max 50).
     """
