@@ -2,10 +2,10 @@
   <img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Spotify_icon.svg" alt="Spotify Logo" width="80"/>
 </p>
 
-<h1 align="center">Spotify CLI</h1>
+<h1 align="center">Spotify TUI</h1>
 
 <p align="center">
-  <em>simple spotify terminal cli built with python</em>
+  <em>simple spotify terminal tui built with python</em>
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 
 ## introduction
 
-This project is a **Python-based command-line interface** that lets you control **Spotify playback**, search the catalog, and view the current playing song's album art all without leaving your terminal. It connects to your Spotify account via the Web API and renders a live, auto-refreshing dashboard with full-color ASCII album art, real-time track progress, and single-keypress controls.
+This project is a **Python-based terminal user interface** that lets you control **Spotify playback**, search the catalog, and view the current playing song's album art all without leaving your terminal. It connects to your Spotify account via the Web API and renders a live, auto-refreshing dashboard with full-color ASCII album art, real-time track progress, and single-keypress controls.
 
 The interface is built on Rich's alternate screen buffer for flicker-free rendering and uses a threaded input listener (`msvcrt`) to capture keypresses instantly, which means no Enter key required for common actions.
 
@@ -27,8 +27,8 @@ The interface is built on Rich's alternate screen buffer for flicker-free render
 ## project structure
 
 ```
-spotify-cli/
-├── main.py                  # entry point - CLI commands & interactive loop
+spotify-tui/
+├── main.py                  # entry point - tui commands & interactive loop
 ├── api/
 │   └── spotify_client.py    # thin wrapper around spotipy for playback/search
 ├── auth/
@@ -49,7 +49,7 @@ spotify-cli/
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | **spotipy**       | Authenticates with Spotify via OAuth 2.0 and wraps every Web API endpoint (playback, search, library) into simple Python methods.             |
 | **rich**          | Powers the live terminal UI: `Layout`, `Panel`, `Text`, and `Live` provide flicker-free, full-color rendering on the alternate screen buffer. |
-| **click**         | Defines the CLI command group (`run`, `play`, `pause`, `search`, etc.) with argument parsing and type validation.                             |
+| **click**         | Defines the TUI command group (`run`, `play`, `pause`, `search`, etc.) with argument parsing and type validation.                             |
 | **Pillow**        | Opens and resizes album art images in memory so they can be converted pixel-by-pixel into ANSI color codes.                                   |
 | **requests**      | Downloads album cover images from Spotify's CDN for the ASCII art renderer.                                                                   |
 | **python-dotenv** | Loads `SPOTIPY_CLIENT_ID`, `SPOTIPY_CLIENT_SECRET`, and `SPOTIPY_REDIRECT_URI` from the `.env` file at startup.                               |
@@ -69,8 +69,8 @@ spotify-cli/
 ### 2 · clone & configure
 
 ```bash
-git clone https://github.com/<your-username>/spotify-cli.git
-cd spotify-cli
+git clone https://github.com/<your-username>/spotify-tui.git
+cd spotify-tui
 ```
 
 Create a `.env` file in the project root:
@@ -128,7 +128,7 @@ Single-keypress commands execute the moment you press the key, no Enter needed:
 | `b` | Go to previous track                            |
 | `f` | Toggle shuffle on / off                         |
 | `r` | Cycle repeat mode (off → context → track → off) |
-| `q` | Quit the CLI                                    |
+| `q` | Quit the TUI                                    |
 
 Multi-character commands (press Enter to submit):
 
@@ -144,7 +144,7 @@ Type `s <query>` to search across **tracks**, **albums**, and **playlists** simu
 
 ### standalone Commands
 
-Every action is also available as a one-shot CLI command for scripting or quick use:
+Every action is also available as a one-shot TUI command for scripting or quick use:
 
 ```bash
 python main.py play
