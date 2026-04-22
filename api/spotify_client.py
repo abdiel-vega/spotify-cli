@@ -17,7 +17,18 @@ def next_track():
     sp.next_track()
 
 def previous_track():
-    sp.previous_track()
+    """
+    go to the previous track.  if we are on the first track of the context
+    (album / playlist) Spotify returns 403 — there is nothing before track 1.
+    in that case we restart the current track from 0:00, which is the standard
+    behavior of every music player when you press previous on the first song.
+    """
+    try:
+        sp.previous_track()
+    except Exception:
+        # 403 "Restriction violated" → we're at the start of the context.
+        # seek to the beginning of the current track instead.
+        sp.seek_track(0)
 
 def set_volume(level: int):
     sp.volume(level) # volume must be between 0 - 100
@@ -34,6 +45,21 @@ def play_uri(track_uri: str):
 def play_context_uri(context_uri: str):
     """play an album or playlist by its context URI."""
     sp.start_playback(context_uri=context_uri) # e.g. "spotify:album:..." or "spotify:playlist:..."
+
+def play_track_in_context(track_uri: str):
+    """
+    play a track within its album context so that:
+    - next / previous commands work correctly
+    - playback continues after the track ends (autoplay)
+
+    Spotify's /me/player/previous returns 403 when a track was started
+    with uris=[...] because there is no surrounding context.  using the
+    album as context_uri and the track as the offset fixes this.
+    """
+    track_id = track_uri.split(":")[-1]
+    track_info = sp.track(track_id)
+    album_uri = track_info["album"]["uri"]
+    sp.start_playback(context_uri=album_uri, offset={"uri": track_uri})
 
 
 # --- now playing ---

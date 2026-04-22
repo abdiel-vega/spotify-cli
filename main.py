@@ -10,7 +10,7 @@ from rich.panel import Panel
 from api.spotify_client import (
     play, pause, next_track, previous_track,
     set_volume, toggle_shuffle, toggle_repeat,
-    search, play_uri, play_context_uri, get_current_track,
+    search, play_uri, play_context_uri, play_track_in_context, get_current_track,
 )
 from ui.display import build_display, console
 
@@ -136,7 +136,8 @@ def process_command(cmd: str) -> bool:
                 if 1 <= choice <= len(items):
                     selected = items[choice - 1]
                     if selected["type"] == "track":
-                        play_uri(selected["uri"])
+                        # play within album context so next/previous/autoplay work
+                        play_track_in_context(selected["uri"])
                     else:
                         # albums and playlists need context_uri
                         play_context_uri(selected["uri"])
@@ -352,7 +353,8 @@ def search_cmd(query, search_type, limit):
     if 1 <= choice <= len(unified):
         selected = unified[choice - 1]
         if selected["type"] == "track":
-            play_uri(selected["uri"])
+            # play within album context so next/previous/autoplay work
+            play_track_in_context(selected["uri"])
         else:
             play_context_uri(selected["uri"])
         click.echo(f"▶  Now playing: {selected['name']}")

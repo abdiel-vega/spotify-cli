@@ -100,7 +100,9 @@ pip install -r requirements.txt
 python main.py run
 ```
 
-> **note:** Spotify requires an active playback session on at least one device. Open the Spotify desktop or mobile app and start playing something before launching the CLI.
+> **note:** Spotify requires an active playback session on at least one device. Open the Spotify desktop or mobile app and start playing something before launching the CLI.  
+
+> **note:** When in virtual environment, type `deactivate` to exit.
 
 ---
 
