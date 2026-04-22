@@ -173,8 +173,3 @@ The app requests only the permissions it needs:
 | `playlist-read-private` | Access private playlists in search results |
 | `user-library-read` | Read saved library data |
 
----
-
-<p align="center">
-  <sub>Built with <a href="https://spotipy.readthedocs.io/">Spotipy</a> · <a href="https://rich.readthedocs.io/">Rich</a> · <a href="https://click.palletsprojects.com/">Click</a></sub>
-</p>
